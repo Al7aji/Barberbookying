@@ -23,18 +23,24 @@ const userSchema = mongoose.Schema({
     required: [true, 'Password required'],
     minlength: 6,
 
-
   },
   role: {
     type: String,
     enum: ['customer','admin'],
     default: 'customer'
+  },
+  refreshToken: {
+    type: String,
+    
   }
+
 }, { timestamps: true })
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
+
 
 module.exports = mongoose.model('User', userSchema)
 
