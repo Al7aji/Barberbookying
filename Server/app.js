@@ -6,7 +6,7 @@ const cors = require('cors');
 const corsOrigins = require('./config/CorsOrigins');
 const cookieParser = require('cookie-parser')
 const app = express();
-
+const allowedOrigins = require('./config/AllowedOrigins');
 
 connectdb()
 
@@ -15,7 +15,9 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.use("/Api/auth",require('./Routers/AuthRouters'));
+app.use("/Api/users",require('./Routers/UsersRouter'));
 
+console.log(`${allowedOrigins} are allowed origins`);
 
 const port = process.env.Port || 5000;
 mongoose.connection.once('open',()=>{
