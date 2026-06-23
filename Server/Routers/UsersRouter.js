@@ -1,14 +1,13 @@
 const express = require('express');
 const Router = express.Router();
 const {GetAllUsers, GetUserById, UpdateUser} = require('../Controllers/UsersController');
-const {vrifyToken} = require('../middleware/Auth');
-
-
+const {verifyToken , checkRole} = require('../middleware/Auth');
 //accrssible by admin only
-Router.get('/',vrifyToken, GetAllUsers);
+
+Router.get('/',verifyToken,checkRole('admin') ,GetAllUsers);
 
 //accessible by admin and user himself
-Router.get('/:id', vrifyToken, GetUserById);
+Router.get('/:id',verifyToken, GetUserById);
 
 
 

@@ -27,6 +27,10 @@ mongoose.connection.once('open',()=>{
     console.log(`Example app listening on port ${port}!`)
     console.log(`http://localhost:${port}/Api/auth/register`);
     console.log(`http://localhost:${port}/Api/auth/login`);
+    console.log(`http://localhost:${port}/Api/auth/refresh`);
+    console.log(`http://localhost:${port}/Api/auth/logout`);
+    console.log(`http://localhost:${port}/Api/users`);
+    console.log(`http://localhost:${port}/Api/users/:id`);
 
 })
 });
