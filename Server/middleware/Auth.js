@@ -12,7 +12,7 @@ const verifyToken = async (req, res, next) => {
         const token = authheader.split(' ')[1];
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            req.user = decoded.user;
+            req.user = decoded;
             next();
 
         }catch(error){
@@ -24,8 +24,9 @@ const verifyToken = async (req, res, next) => {
 const checkRole = (...allowedRoles) => {
     return (req, res, next) => {
         if(!req.user || !allowedRoles.includes(req.user.role)){
-            return res.status(403).json({message: 'Forbidden: You do not have the required role to access this resource.'});
+            return res.status(403).json({message: 'Forbidden: You do not have the required role to access this resource.' });
         }
+        
         next();
     };
 };

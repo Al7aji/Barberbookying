@@ -46,8 +46,8 @@ const register = async (req,res)=>{
     // Set the refresh token as an HTTP-only cookie
     res.cookie('jwt', refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'None',
+      secure: false,
+      sameSite: 'Lax',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
@@ -100,11 +100,11 @@ const login = async (req,res)=>{
 
     res.cookie('jwt', refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'None',
+      secure: false,
+      sameSite: 'Lax',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
-  
+
 
     res.status(200).json({
         message: 'User logged in successfully',
@@ -157,12 +157,17 @@ const refresh = async (req, res) => {
         // Set the new refresh token as an HTTP-only cookie
         res.cookie('jwt', refreshToken, {
             httpOnly: true,
-            secure: true,
-            sameSite: 'None',
+            secure: false,
+            sameSite: 'Lax',
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
 
-    } catch (error) { 
+        res.status(200).json({
+            message: 'Token refreshed successfully',
+            accessToken: accessToken
+        });
+
+    } catch (error) {
         console.error(error);
         res.status(500).json({ message: `Server error ${error.message}` });
     }
@@ -170,21 +175,21 @@ const refresh = async (req, res) => {
 
 
 const logout = async (req, res) => {
-  try {
-    const token = req.cookies?.jwt; 
-    if (token) {
-      const decoded = jwt.decodede(token);
-      await User.findByIdAndUpdate(decoded.id, { refreshToken: null });
+  const token = req.cookies?.jwt;
 
+  if (token) {
+    try {
+      const decoded = jwt.decode(token);
+      if (decoded?.id) {
+        await User.findByIdAndUpdate(decoded.id, { refreshToken: null });
+      }
+    } catch (error) {
+      console.error('logout: failed to clear refreshToken in DB', error);
     }
-    res.clearCookie('jwt', { httpOnly: true, secure: true, sameSite: 'None' });
+  }
 
-    res.status(200).json({ message: 'Logged out successfully' });
-    
-  }catch (error) {
-    console.error(error);
-    res.status(500).json({ message: `Server error ${error.message}` });
-  } 
+  res.clearCookie('jwt', { httpOnly: true, secure: false, sameSite: 'Lax' });
+  res.status(200).json({ message: 'Logged out successfully' });
 };
 
 
