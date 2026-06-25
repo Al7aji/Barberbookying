@@ -1,7 +1,39 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Scissors } from "lucide-react";
+import { useState } from "react";
+import api from "../api/client";
+import { setAccessToken } from "../api/client";
 
 export default function Login({ welcomeMessage }) {
+  const navigate = useNavigate();
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setError("");
+    setLoading(true);
+
+    const formData = new FormData(e.target);
+    const email = formData.get("email");
+    const password = formData.get("password");
+
+    console.log("Submitting login for:", email);
+
+    try {
+      const response = await api.post("/auth/login", { email, password });
+      console.log("Login response:", response.data);
+      setAccessToken(response.data.accessToken);
+      navigate("/home");
+    } catch (err) {
+      console.error("Login error:", err);
+      setError(err.response?.data?.message || "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 h-full bg-gray-900">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
@@ -20,7 +52,12 @@ export default function Login({ welcomeMessage }) {
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-        <form action="#" method="POST" className="space-y-6">
+        {error && (
+          <div className="rounded-md bg-red-50 p-4 mb-6">
+            <p className="text-sm text-red-800">{error}</p>
+          </div>
+        )}
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm/6 font-medium text-gray-100">
               Email address
@@ -63,9 +100,10 @@ export default function Login({ welcomeMessage }) {
           <div>
             <button
               type="submit"
-              className="flex w-full justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+              disabled={loading}
+              className="flex w-full justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign in
+              {loading ? "Signing in..." : "Sign in"}
             </button>
           </div>
         </form>
