@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import api from "../api/client";
+import { barbers as staticBarbers } from "../data/bookingData";
 
 const BookingContext = createContext(null);
 
@@ -16,8 +17,8 @@ export function BookingProvider({ children }) {
       const { data } = await api.get("/barbers");
       setBarbers(data.barbers || []);
     } catch (e) {
-      console.error("fetchBarbers failed", e);
-      setBarbers([]);
+      console.error("fetchBarbers failed, using static data", e);
+      setBarbers(staticBarbers);
     } finally {
       setLoadingBarbers(false);
     }
@@ -48,7 +49,13 @@ export function BookingProvider({ children }) {
 
   // Create a new appointment
   const createAppointment = useCallback(async ({ barber, service, date, time, notes }) => {
-    const { data } = await api.post("/appointments", { barber, service, date, time, notes });
+    const { data } = await api.post("/appointments", { 
+      barber: barber._id || barber.id, 
+      service: service.name, 
+      date, 
+      time, 
+      notes 
+    });
     // Prepend the new one to the local list (server returns the full appointment)
     setAppointments((prev) => [data.appointment, ...prev]);
     return data.appointment;

@@ -1,8 +1,11 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { Scissors, Home as HomeIcon, LogIn } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import ProfileMenu from "./ProfileMenu";
 
 export default function Layout() {
   const location = useLocation();
+  const { user, loading } = useAuth();
 
   const isActive = (path) => {
     if (path === "/" && location.pathname === "/") return true;
@@ -30,21 +33,35 @@ export default function Layout() {
             </Link>
 
             {/* Desktop nav */}
-            <nav className="hidden md:flex items-center gap-2">
+            <nav className="hidden md:flex items-center gap-3">
               <Link to="/" className={linkClass("/")}>
                 <HomeIcon className="size-4" />
                 Home
               </Link>
-              <Link to="/login" className={linkClass("/login")}>
-                <LogIn className="size-4" />
-                Login
-              </Link>
+
+              {/* Right side: profile menu (when logged in) OR Login link */}
+              {loading ? (
+                <span className="text-sm text-gray-400 px-4">...</span>
+              ) : user ? (
+                <ProfileMenu />
+              ) : (
+                <Link to="/login" className={linkClass("/login")}>
+                  <LogIn className="size-4" />
+                  Login
+                </Link>
+              )}
             </nav>
 
-            {/* Mobile: just show the active page name on the right */}
-            <span className="md:hidden text-sm font-medium text-gray-600">
-              {isActive("/login") ? "Login" : "Home"}
-            </span>
+            {/* Mobile: show profile/Login on the right too */}
+            <div className="md:hidden flex items-center gap-2">
+              {loading ? null : user ? (
+                <ProfileMenu />
+              ) : (
+                <Link to="/login" className={linkClass("/login")}>
+                  <LogIn className="size-4" />
+                </Link>
+              )}
+            </div>
           </div>
 
           {/* Mobile nav row */}
@@ -52,9 +69,11 @@ export default function Layout() {
             <Link to="/" className={`flex-1 text-center ${linkClass("/")} justify-center`}>
               Home
             </Link>
-            <Link to="/login" className={`flex-1 text-center ${linkClass("/login")} justify-center`}>
-              Login
-            </Link>
+            {!user && (
+              <Link to="/login" className={`flex-1 text-center ${linkClass("/login")} justify-center`}>
+                Login
+              </Link>
+            )}
           </nav>
         </div>
       </header>
@@ -68,7 +87,6 @@ export default function Layout() {
       <footer className="border-t mt-20 bg-gray-50">
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Brand */}
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Scissors className="size-6 text-indigo-600" />
@@ -79,7 +97,6 @@ export default function Layout() {
               </p>
             </div>
 
-            {/* Contact */}
             <div>
               <h3 className="font-semibold mb-4 text-gray-900">Contact</h3>
               <div className="space-y-2 text-gray-600">
@@ -90,7 +107,6 @@ export default function Layout() {
               </div>
             </div>
 
-            {/* Hours */}
             <div>
               <h3 className="font-semibold mb-4 text-gray-900">Opening Hours</h3>
               <div className="space-y-2 text-gray-600">

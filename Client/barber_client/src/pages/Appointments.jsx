@@ -1,24 +1,42 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, Clock, Scissors, Trash2, CalendarPlus } from "lucide-react";
 import { useBookings } from "../context/BookingContext";
 
 export default function Appointments() {
-  const { bookings, cancelBooking } = useBookings();
+  const { appointments, loadingAppointments, fetchMyAppointments, cancelAppointment } =
+    useBookings();
 
-  // Sort bookings: upcoming first (by date asc), past last (by date desc)
+  // Fetch on mount
+  useEffect(() => {
+    fetchMyAppointments();
+  }, [fetchMyAppointments]);
+
+  // Sort: upcoming first (date asc), past last (date desc)
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
-  const upcoming = bookings
-    .filter((b) => new Date(b.date) >= now)
+  const upcoming = (appointments || [])
+    .filter((b) => b.status !== "cancelled" && new Date(b.date) >= now)
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  const past = bookings
-    .filter((b) => new Date(b.date) < now)
+  const past = (appointments || [])
+    .filter((b) => b.status !== "cancelled" && new Date(b.date) < now)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
+  const cancelled = (appointments || []).filter((b) => b.status === "cancelled");
+
+  // ─── Loading state ────────────────────────────────────────────────────
+  if (loadingAppointments) {
+    return (
+      <div className="container mx-auto px-4 py-16 text-center text-gray-500">
+        Loading your appointments...
+      </div>
+    );
+  }
+
   // ─── Empty state ───────────────────────────────────────────────────────
-  if (bookings.length === 0) {
+  if (!appointments || appointments.length === 0) {
     return (
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-xl mx-auto text-center">
@@ -47,7 +65,7 @@ export default function Appointments() {
           <div>
             <h1 className="text-4xl font-bold mb-2">My Appointments</h1>
             <p className="text-gray-600">
-              {upcoming.length} upcoming · {past.length} past
+              {upcoming.length} upcoming · {past.length} past · {cancelled.length} cancelled
             </p>
           </div>
           <Link
@@ -63,9 +81,9 @@ export default function Appointments() {
           <Section title="Upcoming">
             {upcoming.map((b) => (
               <BookingCard
-                key={b.id}
+                key={b._id}
                 booking={b}
-                onCancel={() => cancelBooking(b.id)}
+                onCancel={() => cancelAppointment(b._id)}
                 cancellable
               />
             ))}
@@ -75,7 +93,15 @@ export default function Appointments() {
         {past.length > 0 && (
           <Section title="Past">
             {past.map((b) => (
-              <BookingCard key={b.id} booking={b} />
+              <BookingCard key={b._id} booking={b} />
+            ))}
+          </Section>
+        )}
+
+        {cancelled.length > 0 && (
+          <Section title="Cancelled">
+            {cancelled.map((b) => (
+              <BookingCard key={b._id} booking={b} />
             ))}
           </Section>
         )}
@@ -95,7 +121,15 @@ function Section({ title, children }) {
 }
 
 function BookingCard({ booking, onCancel, cancellable }) {
-  const { barber, service, date, time, totalPrice } = booking;
+  // Server populates `barber` with { name, specialty }, embeds full `service`.
+  const barberName = booking.barber?.name || "Barber";
+  const serviceName = booking.service?.name || "Service";
+  const serviceDuration = booking.service?.duration;
+  const servicePrice = booking.service?.price;
+  const date = booking.date;
+  const time = booking.time;
+  const status = booking.status;
+
   const dateStr = new Date(date).toLocaleDateString(undefined, {
     weekday: "short",
     year: "numeric",
@@ -120,9 +154,14 @@ function BookingCard({ booking, onCancel, cancellable }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <Scissors className="size-4 text-gray-400" />
-            <h3 className="font-semibold">{barber.name}</h3>
+            <h3 className="font-semibold">{barberName}</h3>
+            {status === "cancelled" && (
+              <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700">
+                Cancelled
+              </span>
+            )}
           </div>
-          <p className="text-gray-600 text-sm mb-2">{service.name}</p>
+          <p className="text-gray-600 text-sm mb-2">{serviceName}</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
             <span className="inline-flex items-center gap-1">
               <Calendar className="size-3.5" />
@@ -132,16 +171,20 @@ function BookingCard({ booking, onCancel, cancellable }) {
               <Clock className="size-3.5" />
               {time}
             </span>
-            <span className="inline-flex items-center gap-1">
-              <Clock className="size-3.5" />
-              {service.duration} min
-            </span>
+            {serviceDuration && (
+              <span className="inline-flex items-center gap-1">
+                <Clock className="size-3.5" />
+                {serviceDuration} min
+              </span>
+            )}
           </div>
         </div>
 
         {/* Price + cancel */}
         <div className="flex flex-col items-end gap-2">
-          <span className="text-lg font-bold">€{totalPrice}</span>
+          {servicePrice && (
+            <span className="text-lg font-bold">€{servicePrice}</span>
+          )}
           {cancellable && (
             <button
               onClick={onCancel}

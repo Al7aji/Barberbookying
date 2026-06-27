@@ -1,11 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Scissors } from "lucide-react";
 import { useState } from "react";
-import api from "../api/client";
-import { setAccessToken } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 
 export default function Signup({ welcomeMessage }) {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,9 +24,8 @@ export default function Signup({ welcomeMessage }) {
     console.log("Submitting registration for:", email);
 
     try {
-      const response = await api.post("/auth/register", { first_name, last_name, email, password });
-      console.log("Registration response:", response.data);
-      setAccessToken(response.data.accessToken);
+      await register(first_name, last_name, email, password);
+      console.log("Registration successful");
       navigate("/home");
     } catch (err) {
       console.error("Registration error:", err);

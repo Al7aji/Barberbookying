@@ -1,11 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Scissors } from "lucide-react";
 import { useState } from "react";
-import api from "../api/client";
-import { setAccessToken } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login({ welcomeMessage }) {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -22,9 +22,8 @@ export default function Login({ welcomeMessage }) {
     console.log("Submitting login for:", email);
 
     try {
-      const response = await api.post("/auth/login", { email, password });
-      console.log("Login response:", response.data);
-      setAccessToken(response.data.accessToken);
+      await login(email, password);
+      console.log("Login successful");
       navigate("/home");
     } catch (err) {
       console.error("Login error:", err);

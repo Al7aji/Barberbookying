@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Scissors, Star, Check, CalendarDays, Clock } from "lucide-react";
-import { barbers, services, timeSlots } from "../data/bookingData";
+import { services, timeSlots } from "../data/bookingData";
 import { useBookings } from "../context/BookingContext";
 
 export default function Booking() {
   const navigate = useNavigate();
-  const { addBooking } = useBookings();
+  const { createAppointment, barbers, fetchBarbers, loadingBarbers } = useBookings();
 
   const [step, setStep] = useState(1);
   const [selectedBarber, setSelectedBarber] = useState(null);
@@ -14,6 +14,10 @@ export default function Booking() {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [confirmation, setConfirmation] = useState(null);
+
+  useEffect(() => {
+    fetchBarbers();
+  }, [fetchBarbers]);
 
   const totalPrice = selectedService ? selectedService.price : 0;
 
@@ -25,15 +29,20 @@ export default function Booking() {
   const handleNext = () => canGoNext && setStep((s) => Math.min(3, s + 1));
   const handleBack = () => setStep((s) => Math.max(1, s - 1));
 
-  const handleConfirm = () => {
-    const booking = addBooking({
-      barber: selectedBarber,
-      service: selectedService,
-      date: selectedDate,
-      time: selectedTime,
-      totalPrice,
-    });
-    setConfirmation(booking);
+  const handleConfirm = async () => {
+    try {
+      const booking = await createAppointment({
+        barber: selectedBarber,
+        service: selectedService,
+        date: selectedDate,
+        time: selectedTime,
+        totalPrice,
+      });
+      setConfirmation(booking);
+    } catch (err) {
+      console.error("Booking failed:", err);
+      alert("Failed to book appointment. Please try again.");
+    }
   };
 
   const handleReset = () => {
@@ -62,11 +71,11 @@ export default function Booking() {
           </p>
 
           <div className="bg-gray-50 rounded-lg p-4 text-left space-y-2 mb-6">
-            <Row label="Barber"  value={confirmation.barber.name} />
-            <Row label="Service" value={`${confirmation.service.name} (${confirmation.service.duration} min)`} />
-            <Row label="Date"    value={new Date(confirmation.date).toLocaleDateString()} />
-            <Row label="Time"    value={confirmation.time} />
-            <Row label="Total"   value={`€${confirmation.totalPrice}`} bold />
+            <Row label="Barber"  value={confirmation?.barber?.name || selectedBarber?.name} />
+            <Row label="Service" value={confirmation?.service?.name || selectedService?.name} />
+            <Row label="Date"    value={confirmation?.date ? new Date(confirmation.date).toLocaleDateString() : new Date(selectedDate).toLocaleDateString()} />
+            <Row label="Time"    value={confirmation?.time || selectedTime} />
+            <Row label="Total"   value={`€${confirmation?.totalPrice || totalPrice}`} bold />
           </div>
 
           <div className="flex gap-3 justify-center">
@@ -122,36 +131,46 @@ export default function Booking() {
           <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-6">
             {step === 1 && (
               <Step title="Select Your Barber" subtitle="Choose from our expert team">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {barbers.map((b) => (
-                    <button
-                      key={b.id}
-                      onClick={() => setSelectedBarber(b)}
-                      className={`text-left p-4 rounded-lg border-2 transition-all ${
-                        selectedBarber?.id === b.id
-                          ? "border-indigo-600 bg-indigo-50"
-                          : "border-gray-200 hover:border-gray-400"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="size-12 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                          <Scissors className="size-6 text-indigo-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold">{b.name}</h3>
-                          <p className="text-sm text-gray-600 mb-2">{b.specialty}</p>
-                          <div className="flex items-center gap-1 text-sm">
-                            <Star className="size-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-medium">{b.rating}</span>
+                {loadingBarbers ? (
+                  <p className="text-gray-500">Loading barbers...</p>
+                ) : (
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {barbers.map((b) => {
+                      const isSelected = selectedBarber && (
+                        (selectedBarber._id && selectedBarber._id === b._id) ||
+                        (selectedBarber.id && selectedBarber.id === b.id)
+                      );
+                      return (
+                        <button
+                          key={b._id || b.id}
+                          onClick={() => setSelectedBarber(b)}
+                          className={`text-left p-4 rounded-lg border-2 transition-all ${
+                            isSelected
+                              ? "border-indigo-600 bg-indigo-50"
+                              : "border-gray-200 hover:border-gray-400"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="size-12 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                              <Scissors className="size-6 text-indigo-600" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold">{b.name}</h3>
+                              <p className="text-sm text-gray-600 mb-2">{b.specialty}</p>
+                              <div className="flex items-center gap-1 text-sm">
+                                <Star className="size-4 fill-yellow-400 text-yellow-400" />
+                                <span className="font-medium">{b.rating || 4.5}</span>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <Check className="size-5 text-indigo-600 flex-shrink-0" />
+                            )}
                           </div>
-                        </div>
-                        {selectedBarber?.id === b.id && (
-                          <Check className="size-5 text-indigo-600 flex-shrink-0" />
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </Step>
             )}
 
